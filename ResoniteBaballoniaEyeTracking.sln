@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36429.23 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ResoniteBaballoniaEyeTracking", "ResoniteBaballoniaEyeTracking.csproj", "{E4785A02-E891-4762-AD5B-0815448F5816}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E4785A02-E891-4762-AD5B-0815448F5816}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4785A02-E891-4762-AD5B-0815448F5816}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4785A02-E891-4762-AD5B-0815448F5816}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4785A02-E891-4762-AD5B-0815448F5816}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E41E7A7D-9F32-450B-B03B-FF3EBB40A1C6}
+	EndGlobalSection
+EndGlobal
