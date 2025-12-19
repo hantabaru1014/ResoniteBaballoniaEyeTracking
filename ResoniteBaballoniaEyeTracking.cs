@@ -1,7 +1,10 @@
-﻿using Elements.Core;
+﻿using HarmonyLib;
+using Elements.Core;
 using FrooxEngine;
 using ResoniteModLoader;
 using Rug.Osc;
+using System.Reflection.Emit;
+
 
 namespace ResoniteBaballoniaEyeTracking;
 
@@ -15,8 +18,6 @@ public class ResoniteBaballoniaEyeTracking : ResoniteMod
     [AutoRegisterConfigKey]
     private static readonly ModConfigurationKey<bool> ModEnabledKey = new("Enabled", "Mod Enabled", () => true);
     [AutoRegisterConfigKey]
-    private static readonly ModConfigurationKey<int> OscPortKey = new("OscPort", "OSC port", () => 8888);
-    [AutoRegisterConfigKey]
     private static readonly ModConfigurationKey<float> AlphaKey = new("Alpha", "Eye Swing Multiplier X", () => 1.0f);
 
     [AutoRegisterConfigKey]
@@ -26,51 +27,99 @@ public class ResoniteBaballoniaEyeTracking : ResoniteMod
 
     public override void OnEngineInit()
     {
+        Harmony harmony = new Harmony($"{Author}.{Name}");
         _config = GetConfiguration();
-
-        Engine.Current.RunPostInit(() =>
-        {
-            try
-            {
-                Engine.Current.InputInterface.RegisterInputDriver(new BaballoniaEyeOSC_Driver());
-            }
-            catch (Exception e)
-            {
-                Error($"Failed to register input driver: {e}");
-            }
-        });
+        _config?.Save(true);
+        harmony.PatchAll();
     }
 
-    public class BaballoniaEyeOSC_Driver : OSC_Driver
+
+
+
+
+    [Harmony]
+    
+    public class Transpiler
     {
-        private Eyes? _eyes;
-
-        private float _leftEyePosX = 0f;
-        private float _leftEyePosY = 0f;
-        private float _rightEyePosX = 0f;
-        private float _rightEyePosY = 0f;
-        private float _leftEyeLid = 0f;
-        private float _rightEyeLid = 0f;
-
-        public override int UpdateOrder => 100;
-
-        public override void CollectDeviceInfos(DataTreeList list)
+        [HarmonyPatch(typeof(BabbleOSC_Driver), "RegisterInputs")]
+        [HarmonyTranspiler]
+        public static IEnumerable<CodeInstruction> Transpile_RegisterInputs(IEnumerable<CodeInstruction> original)
         {
-            var dict = new DataTreeDictionary();
-            dict.Add("Name", "Baballonia Eye Tracking");
-            dict.Add("Type", "Eye Tracking");
-            dict.Add("Model", "Baballonia");
-            list.Add(dict);
+
+            List<CodeInstruction> instructions = new List<CodeInstruction>(original);
+
+
+            int start = instructions.FindIndex(o => o.opcode == OpCodes.Stfld);
+
+            instructions.InsertRange(start, new CodeInstruction[]{
+                new CodeInstruction(OpCodes.Ldarg_1,null),
+                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Eye_Mouth_Transpiler), "RegisterInputs2"))
+            });
+
+
+            return instructions;
         }
 
-        public override void RegisterInputs(InputInterface inputInterface)
+
+        [HarmonyPatch(typeof(BabbleOSC_Driver), "UpdateInputs")]
+        [HarmonyTranspiler]
+        public static IEnumerable<CodeInstruction> Transpile_UpdateInputs(IEnumerable<CodeInstruction> original)
         {
-            _eyes = new Eyes(inputInterface, "Baballonia Eye Tracking", false);
-            SetPort(_config?.GetValue(OscPortKey) ?? 8888);
-            base.RegisterInputs(inputInterface);
+
+            List<CodeInstruction> instructions = new List<CodeInstruction>(original);
+
+
+            instructions.InsertRange(0, new CodeInstruction[]{
+                new CodeInstruction(OpCodes.Ldarg_1,null),
+                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Eye_Mouth_Transpiler), "UpdateInputs2"))
+            });
+
+
+            return instructions;
         }
 
-        public override void UpdateInputs(float deltaTime)
+
+
+        [HarmonyPatch(typeof(BabbleOSC_Driver), "UpdateData")]
+        [HarmonyTranspiler]
+        public static IEnumerable<CodeInstruction> Transpile_UpdateData(IEnumerable<CodeInstruction> original)
+        {
+
+            List<CodeInstruction> instructions = new List<CodeInstruction>(original);
+
+
+            instructions.InsertRange(0, new CodeInstruction[]{
+                new CodeInstruction(OpCodes.Ldarg_1,null),
+                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Eye_Mouth_Transpiler), "UpdateData2"))
+            });
+
+
+            return instructions;
+        }
+
+    }
+
+
+
+    public class Eye_Mouth_Transpiler: OSC_Driver
+    {
+        private static Eyes? _eyes;
+
+        private static float _leftEyePosX = 0f;
+        private static float _leftEyePosY = 0f;
+        private static float _rightEyePosX = 0f;
+        private static float _rightEyePosY = 0f;
+        private static float _leftEyeLid = 0f;
+        private static float _rightEyeLid = 0f;
+
+        public override int UpdateOrder => throw new NotImplementedException();
+
+        public static void RegisterInputs2(InputInterface inputInterface)
+        {
+            _eyes = new Eyes(inputInterface, "Project Babble", false);
+        }
+
+        public static void UpdateInputs2(float deltaTime)
         {
             if (_eyes is null) return;
             if (!Engine.Current.InputInterface.VR_Active || !(_config?.GetValue(ModEnabledKey) ?? false))
@@ -95,7 +144,7 @@ public class ResoniteBaballoniaEyeTracking : ResoniteMod
             _eyes.FinishUpdate();
         }
 
-        private static void UpdateEye(Eye eye, bool isTracking, float3 gazeDirection, float openness)
+        public static void UpdateEye(Eye eye, bool isTracking, float3 gazeDirection, float openness)
         {
             eye.IsDeviceActive = isTracking;
             eye.IsTracking = isTracking;
@@ -111,38 +160,53 @@ public class ResoniteBaballoniaEyeTracking : ResoniteMod
             eye.Frown = 0f;
         }
 
-        protected override void UpdateData(OscMessage message)
+        public static void UpdateData2(OscMessage message)
         {
             if (string.IsNullOrEmpty(message.Address)) return;
 
             switch (message.Address)
             {
                 case "/LeftEyeX":
-                    _leftEyePosX = ReadFloat(message);
+                    _leftEyePosX = OSC_Driver.ReadFloat(message);
                     break;
                 case "/LeftEyeY":
-                    _leftEyePosY = ReadFloat(message);
+                    _leftEyePosY = OSC_Driver.ReadFloat(message);
                     break;
                 case "/RightEyeX":
-                    _rightEyePosX = ReadFloat(message);
+                    _rightEyePosX = OSC_Driver.ReadFloat(message);
                     break;
                 case "/RightEyeY":
-                    _rightEyePosY = ReadFloat(message);
+                    _rightEyePosY = OSC_Driver.ReadFloat(message);
                     break;
                 case "/LeftEyeLid":
-                    _leftEyeLid = ReadFloat(message);
+                    _leftEyeLid = OSC_Driver.ReadFloat(message);
                     break;
                 case "/RightEyeLid":
-                    _rightEyeLid = ReadFloat(message);
+                    _rightEyeLid = OSC_Driver.ReadFloat(message);
                     break;
             }
         }
-        
-        private static float3 Project2DTo3D(float x, float y)
+
+        public static float3 Project2DTo3D(float x, float y)
         {
             var alpha = _config?.GetValue(AlphaKey) ?? 1f;
             var beta = _config?.GetValue(BetaKey) ?? 1f;
             return new float3(MathX.Tan(alpha * x), MathX.Tan(beta * y), 1f).Normalized;
+        }
+
+        public override void CollectDeviceInfos(DataTreeList list)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void UpdateInputs(float deltaTime)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void UpdateData(OscMessage message)
+        {
+            throw new NotImplementedException();
         }
     }
 }
