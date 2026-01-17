@@ -8,16 +8,19 @@
     <AppPath>$(MSBuildThisFileDirectory)$(AppName)</AppPath>
     <AppPath Condition="Exists('C:\Program Files (x86)\Steam\steamapps\common\$(AppName)\')">C:\Program Files (x86)\Steam\steamapps\common\$(AppName)\</AppPath>
     <AppPath Condition="Exists('$(HOME)/.steam/steam/steamapps/common/$(AppName)/')">$(HOME)/.steam/steam/steamapps/common/$(AppName)/</AppPath>
-	  <AppPath Condition="Exists('D:/SteamLibrary/steamapps/common/$(AppName)/')">D:/SteamLibrary/steamapps/common/$(AppName)/</AppPath>
     <CopyLocal>false</CopyLocal>
     <CopyToMods Condition="'$(CopyToMods)'==''">true</CopyToMods>
     <DebugSymbols Condition="'$(Configuration)'=='Release'">false</DebugSymbols>
     <DebugType Condition="'$(Configuration)'=='Release'">None</DebugType>
-    <Version>0.1.2</Version>
+    <Version>0.2.0</Version>
     <Authors>hantabaru1014</Authors>
   </PropertyGroup>
 
   <ItemGroup>
+    <Reference Include="HarmonyLib">
+		  <HintPath>$(AppPath)$(ModLoaderShort)_libs\0Harmony.dll</HintPath>
+		  <HintPath Condition="Exists('$(AppPath)0Harmony.dll')">$(AppPath)0Harmony.dll</HintPath>
+	  </Reference>
     <Reference Include="$(AppName)ModLoader">
       <HintPath>$(AppPath)$(AppName)ModLoader.dll</HintPath>
       <HintPath>$(AppPath)Libraries\$(AppName)ModLoader.dll</HintPath>
@@ -30,9 +33,6 @@
     </Reference>
     <Reference Include="Rug.Osc">
       <HintPath>$(AppPath)\Rug.Osc.dll</HintPath>
-    </Reference>
-  <Reference Include="0Harmony.Lib">
-      <HintPath>$(AppPath)\rml_libs\0Harmony.dll</HintPath>
     </Reference>
   </ItemGroup>
 

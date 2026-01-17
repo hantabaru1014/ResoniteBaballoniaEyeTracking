@@ -1,10 +1,9 @@
-﻿using HarmonyLib;
-using Elements.Core;
+﻿using Elements.Core;
 using FrooxEngine;
+using HarmonyLib;
 using ResoniteModLoader;
 using Rug.Osc;
 using System.Reflection.Emit;
-
 
 namespace ResoniteBaballoniaEyeTracking;
 
@@ -12,7 +11,7 @@ public class ResoniteBaballoniaEyeTracking : ResoniteMod
 {
     public override string Name => "ResoniteBaballoniaEyeTracking";
     public override string Author => "hantabaru1014";
-    public override string Version => "0.1.1";
+    public override string Version => "0.2.0";
     public override string Link => "https://github.com/hantabaru1014/ResoniteBaballoniaEyeTracking";
 
     [AutoRegisterConfigKey]
@@ -38,9 +37,18 @@ public class ResoniteBaballoniaEyeTracking : ResoniteMod
 
 
     [Harmony]
-    
-    public class Transpiler
+    public class BabbleOSC_Driver_Patches
     {
+        [HarmonyPatch(typeof(BabbleOSC_Driver), "get_ShouldInitialize")]
+        [HarmonyPostfix]
+        public static void Postfix_ShouldInitialize(ref bool __result)
+        {
+            if (_config?.GetValue(ModEnabledKey) ?? false)
+            {
+                __result = true;
+            }
+        }
+
         [HarmonyPatch(typeof(BabbleOSC_Driver), "RegisterInputs")]
         [HarmonyTranspiler]
         public static IEnumerable<CodeInstruction> Transpile_RegisterInputs(IEnumerable<CodeInstruction> original)
@@ -81,27 +89,31 @@ public class ResoniteBaballoniaEyeTracking : ResoniteMod
 
 
         [HarmonyPatch(typeof(BabbleOSC_Driver), "UpdateData")]
-        [HarmonyTranspiler]
-        public static IEnumerable<CodeInstruction> Transpile_UpdateData(IEnumerable<CodeInstruction> original)
+        [HarmonyPrefix]
+        public static bool Prefix_UpdateData(OscMessage message)
         {
+            if (string.IsNullOrEmpty(message.Address)) return true;
 
-            List<CodeInstruction> instructions = new List<CodeInstruction>(original);
-
-
-            instructions.InsertRange(0, new CodeInstruction[]{
-                new CodeInstruction(OpCodes.Ldarg_1,null),
-                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Eye_Mouth_Transpiler), "UpdateData2"))
-            });
-
-
-            return instructions;
+            switch (message.Address)
+            {
+                case "/LeftEyeX":
+                case "/LeftEyeY":
+                case "/RightEyeX":
+                case "/RightEyeY":
+                case "/LeftEyeLid":
+                case "/RightEyeLid":
+                    Eye_Mouth_Transpiler.UpdateData2(message);
+                    return false; // Skip original method for eye-related messages
+                default:
+                    return true; // Run original method for mouth-related messages
+            }
         }
 
     }
 
 
 
-    public class Eye_Mouth_Transpiler: OSC_Driver
+    public class Eye_Mouth_Transpiler : OSC_Driver
     {
         private static Eyes? _eyes;
 
