@@ -11,14 +11,13 @@ public class ResoniteBaballoniaEyeTracking : ResoniteMod
 {
     public override string Name => "ResoniteBaballoniaEyeTracking";
     public override string Author => "hantabaru1014";
-    public override string Version => "0.2.0";
+    public override string Version => "0.2.1";
     public override string Link => "https://github.com/hantabaru1014/ResoniteBaballoniaEyeTracking";
 
     [AutoRegisterConfigKey]
     private static readonly ModConfigurationKey<bool> ModEnabledKey = new("Enabled", "Mod Enabled", () => true);
     [AutoRegisterConfigKey]
     private static readonly ModConfigurationKey<float> AlphaKey = new("Alpha", "Eye Swing Multiplier X", () => 1.0f);
-
     [AutoRegisterConfigKey]
     private static readonly ModConfigurationKey<float> BetaKey = new("Beta", "Eye Swing Multiplier Y", () => 1.0f);
 
@@ -26,16 +25,12 @@ public class ResoniteBaballoniaEyeTracking : ResoniteMod
 
     public override void OnEngineInit()
     {
-        Harmony harmony = new Harmony($"{Author}.{Name}");
+        Harmony harmony = new Harmony("net.hantabaru1014.ResoniteBaballoniaEyeTracking");
         _config = GetConfiguration();
         _config?.Save(true);
         harmony.PatchAll();
     }
-
-
-
-
-
+    
     [Harmony]
     public class BabbleOSC_Driver_Patches
     {
@@ -53,9 +48,7 @@ public class ResoniteBaballoniaEyeTracking : ResoniteMod
         [HarmonyTranspiler]
         public static IEnumerable<CodeInstruction> Transpile_RegisterInputs(IEnumerable<CodeInstruction> original)
         {
-
             List<CodeInstruction> instructions = new List<CodeInstruction>(original);
-
 
             int start = instructions.FindIndex(o => o.opcode == OpCodes.Stfld);
 
@@ -64,29 +57,22 @@ public class ResoniteBaballoniaEyeTracking : ResoniteMod
                 new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Eye_Mouth_Transpiler), "RegisterInputs2"))
             });
 
-
             return instructions;
         }
-
 
         [HarmonyPatch(typeof(BabbleOSC_Driver), "UpdateInputs")]
         [HarmonyTranspiler]
         public static IEnumerable<CodeInstruction> Transpile_UpdateInputs(IEnumerable<CodeInstruction> original)
         {
-
             List<CodeInstruction> instructions = new List<CodeInstruction>(original);
-
 
             instructions.InsertRange(0, new CodeInstruction[]{
                 new CodeInstruction(OpCodes.Ldarg_1,null),
                 new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Eye_Mouth_Transpiler), "UpdateInputs2"))
             });
 
-
             return instructions;
         }
-
-
 
         [HarmonyPatch(typeof(BabbleOSC_Driver), "UpdateData")]
         [HarmonyPrefix]
@@ -108,10 +94,7 @@ public class ResoniteBaballoniaEyeTracking : ResoniteMod
                     return true; // Run original method for mouth-related messages
             }
         }
-
     }
-
-
 
     public class Eye_Mouth_Transpiler : OSC_Driver
     {
