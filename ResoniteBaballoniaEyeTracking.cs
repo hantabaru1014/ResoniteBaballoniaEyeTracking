@@ -25,10 +25,9 @@ public class ResoniteBaballoniaEyeTracking : ResoniteMod
 
     public override void OnEngineInit()
     {
-        Harmony harmony = new Harmony("net.hantabaru1014.ResoniteBaballoniaEyeTracking");
         _config = GetConfiguration();
-        _config?.Save(true);
-        harmony.PatchAll();
+
+        new Harmony("net.hantabaru1014.ResoniteBaballoniaEyeTracking").PatchAll();
     }
     
     [Harmony]
@@ -54,7 +53,7 @@ public class ResoniteBaballoniaEyeTracking : ResoniteMod
 
             instructions.InsertRange(start, new CodeInstruction[]{
                 new CodeInstruction(OpCodes.Ldarg_1,null),
-                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Eye_Mouth_Transpiler), "RegisterInputs2"))
+                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(BaballoniaEyeDriver), "RegisterInputs2"))
             });
 
             return instructions;
@@ -68,7 +67,7 @@ public class ResoniteBaballoniaEyeTracking : ResoniteMod
 
             instructions.InsertRange(0, new CodeInstruction[]{
                 new CodeInstruction(OpCodes.Ldarg_1,null),
-                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Eye_Mouth_Transpiler), "UpdateInputs2"))
+                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(BaballoniaEyeDriver), "UpdateInputs2"))
             });
 
             return instructions;
@@ -88,7 +87,7 @@ public class ResoniteBaballoniaEyeTracking : ResoniteMod
                 case "/RightEyeY":
                 case "/LeftEyeLid":
                 case "/RightEyeLid":
-                    Eye_Mouth_Transpiler.UpdateData2(message);
+                    BaballoniaEyeDriver.UpdateData2(message);
                     return false; // Skip original method for eye-related messages
                 default:
                     return true; // Run original method for mouth-related messages
@@ -96,7 +95,7 @@ public class ResoniteBaballoniaEyeTracking : ResoniteMod
         }
     }
 
-    public class Eye_Mouth_Transpiler : OSC_Driver
+    public class BaballoniaEyeDriver : OSC_Driver
     {
         private static Eyes? _eyes;
 
